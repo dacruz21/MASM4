@@ -1,11 +1,11 @@
 ;*****************************************************************************
 ;Name:		David Cruz & Neal Hitzfield
-;Program:	MASM3.asm
+;Program:	MASM4.asm
 ;Class:		CS3B
 ;Lab:		MASM3
-;Date:		April 19, 2018 at 11:59 PM
+;Date:		May 3, 2018 at 11:59 PM
 ;Purpose:
-;	Use the String1 and String2 libraries
+;	Use the String1 and String2 libraries to create a text editor
 ;*****************************************************************************
 
 .486
