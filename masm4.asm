@@ -13,8 +13,9 @@
 .stack 100h
 option casemap:none
 
-ExitProcess PROTO Near32 stdcall, dVal:dword
-putstring 	PROTO Near32 stdcall, lpStringToPrint:dword
+ExitProcess 		PROTO Near32 stdcall, dVal:dword
+putstring 			PROTO Near32 stdcall, lpStringToPrint:dword
+memoryallocBailey	PROTO Near32 stdcall, dSize:dword
 
 extern String_equals: Near32, String_equalsIgnoreCase: Near32,
 	   String_copy: Near32, String_substring_1: Near32, String_substring_2: Near32,
@@ -30,6 +31,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	
 	Line struct
 		text		byte	MAX_LINE_LENGTH dup (?),0
+		align 		dword
 		next		dword	0
 	Line ends
 
@@ -63,11 +65,9 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strMenu8	byte	4 dup (32), 186, "<8> Quit                          ",186,13,10,0
 	strMenu9	byte	4 dup (32), 200, 34 dup(205),188,13,10,0
 
-
 	head		dword	0
-
+	tail		dword	0
 .code
-
 
 String_length proc, _string1: ptr byte
 	mov eax, 0
@@ -80,7 +80,63 @@ String_length proc, _string1: ptr byte
 	ret
 String_length endp
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; newLine
+; Allocates memory for a new line and places it at the end of the linked list
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+newLine proc
+	invoke memoryallocBailey, sizeof Line
+	mov (Line ptr [eax]).next, 0
+	
+	.if head == 0
+		mov head, eax
+	.else
+		mov (Line ptr [tail]).next, eax
+	.endif
+
+	mov tail, eax
+	ret
+newLine endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; addLine
+; Creates a new node and adds text to it
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+addLine proc, text: ptr byte
+	call newLine
+
+	mov esi, text					; store the address of the text to add
+	mov edi, eax 					; address to store the text
+	mov ecx, 0						; LCV that iterates over each char
+	.while byte ptr [esi + ecx] != 0	; iterate until we find a \0 NULL
+		mov al, byte ptr [esi + ecx]	; get the char at position ecx
+		mov byte ptr [edi + ecx], al	; move it into the string
+		inc ecx							; goto next char
+	.endw
+
+	ret
+addLine endp
+
+printDocument proc
+	mov esi, head
+
+	.while esi != 0
+		invoke putstring, esi
+		mov esi, (Line ptr [esi]).next
+	.endw
+
+	ret
+printDocument endp
+
 _main:
 	mMenu
+	push offset strMenu0
+	call addLine
+	add esp, 4
+	push offset strMenu1
+	call addLine
+	add esp, 4
+	call printDocument
+
 	invoke ExitProcess, 0
 end _main
