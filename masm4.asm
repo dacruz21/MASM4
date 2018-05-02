@@ -91,7 +91,8 @@ newLine proc
 	.if head == 0
 		mov head, eax
 	.else
-		mov (Line ptr [tail]).next, eax
+		mov esi, tail
+		mov (Line ptr [esi]).next, eax
 	.endif
 
 	mov tail, eax
@@ -134,6 +135,15 @@ _main:
 	call addLine
 	add esp, 4
 	push offset strMenu1
+	call addLine
+	add esp, 4
+	push offset strMenu2
+	call addLine
+	add esp, 4
+	push offset strMenu3
+	call addLine
+	add esp, 4
+	push offset strMenu4
 	call addLine
 	add esp, 4
 	call printDocument
