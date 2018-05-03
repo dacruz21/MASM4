@@ -104,6 +104,14 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 			jmp INPUT_END
 		.endif
 
+		push offset strOption5
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			call searchPrompt
+			jmp INPUT_END
+		.endif
+
 		push offset strOption7
 		call String_equalsIgnoreCase
 		add esp, 4
@@ -150,6 +158,37 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 
 		invoke putstring, addr strDocumentRight
 		inc dLineNum
+	endm
+
+	mPrintSearchLine macro line, lineNum
+		invoke putstring, addr strSearchLeft
+
+		.if lineNum <= 999
+			invoke putstring, addr strSpace
+		.endif
+		.if lineNum <= 99
+			invoke putstring, addr strSpace
+		.endif
+		.if lineNum <= 9
+			invoke putstring, addr strSpace
+		.endif
+
+		invoke intasc32, addr strLineNum, lineNum
+		invoke putstring, addr strLineNum
+
+		invoke putstring, addr strSearchSep
+		invoke putstring, line
+
+		push line
+		call String_length
+		pop line
+		mov cx, MAX_LINE_LENGTH
+		sub cx, ax
+		.repeat
+			invoke putstring, addr strSpace
+		.untilcxz
+
+		invoke putstring, addr strSearchRight
 	endm
 
 	mPrintMem macro
@@ -231,6 +270,16 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strSelectLine		byte	13,10,"Enter a line number: ",0
 	strLineInput		byte	4 dup (?),0
 
+	;;;;;;;;;;;;;;;;;;;; SEARCH FOR TEXT ;;;;;;;;;;;;;;;;;;;;;;
+	strSearchTop		byte	201, 5 dup (205), MAX_LINE_LENGTH dup (205), 187, 13, 10, 0
+	strSearchHeadLeft	byte	186, " SEARCH RESULTS FOR ", 34, 0
+	strSearchEndQuote	byte	34, 0	
+	strSearchHeadSep	byte	204, 4 dup (205), 209, MAX_LINE_LENGTH dup (205), 185, 13, 10, 0
+	strSearchLeft		byte	186, 0
+	strSearchSep		byte	179, 0
+	strSearchRight		byte	186,13,10,0
+	strSearchBottom		byte	200, 4 dup (205), 207, MAX_LINE_LENGTH dup (205), 188, 13, 10, 0
+
 	;;;;;;;;;;;;;;;;;; FORMATTING ;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strSpace		byte	32, 0
 	strCrlf			byte	13,10,0
@@ -276,6 +325,27 @@ newLine proc
 	mov tail, eax
 	ret
 newLine endp
+
+printDocument proc
+	.if head == 0
+		invoke putstring, addr strDocumentEmpty
+		ret
+	.endif
+
+	mov esi, head
+	mov dLineNum, 1
+
+	invoke putstring, addr strDocumentTop
+
+	.while esi != 0
+		mPrintDocLine esi
+		mov esi, (Line ptr [esi]).next
+	.endw
+
+	invoke putstring, addr strDocumentBottom
+
+	ret
+printDocument endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; addLine
@@ -351,26 +421,48 @@ editLine proc, lineNum: dword, newText: ptr byte
 	ret
 editLine endp
 
-printDocument proc
-	.if head == 0
-		invoke putstring, addr strDocumentEmpty
-		ret
-	.endif
-
-	mov esi, head
-	mov dLineNum, 1
-
-	invoke putstring, addr strDocumentTop
-
-	.while esi != 0
-		mPrintDocLine esi
-		mov esi, (Line ptr [esi]).next
+searchString proc, substring: ptr byte
+	invoke putstring, addr strSearchTop
+	invoke putstring, addr strSearchHeadLeft
+	invoke putstring, substring
+	invoke putstring, addr strSearchEndQuote
+	
+	push substring
+	call String_length
+	add esp, 4
+	mov ebx, 83
+	sub ebx, eax
+	.while ebx != 0
+		invoke putstring, addr strSpace
+		dec ebx
 	.endw
 
-	invoke putstring, addr strDocumentBottom
+	invoke putstring, addr strSearchRight
+	invoke putstring, addr strSearchHeadSep
+
+	mov esi, head
+	mov ecx, 1
+	.while esi != 0
+		push ecx
+		push substring
+		push esi
+		call String_indexOf_3
+		pop esi
+		add esp, 4
+		pop ecx
+
+		.if eax != -1
+			mPrintSearchLine esi, ecx
+		.endif
+
+		mov esi, (Line ptr [esi]).next
+		inc ecx
+	.endw
+
+	invoke putstring, addr strSearchBottom
 
 	ret
-printDocument endp
+searchString endp
 
 getLineKeyboard proc
 	invoke putstring, addr strEnterText
@@ -407,6 +499,16 @@ editPrompt proc
 	add esp, 8
 	ret
 editPrompt endp
+
+searchPrompt proc
+	invoke putstring, addr strEnterText
+	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
+	invoke putstring, addr strCrlf
+	push offset strKeyboardLine
+	call searchString
+	add esp, 4
+	ret
+searchPrompt endp
 
 _main:
 	.while bShouldExit == 0
