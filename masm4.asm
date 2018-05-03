@@ -18,6 +18,7 @@ putstring 			PROTO Near32 stdcall, lpStringToPrint:dword
 memoryallocBailey	PROTO Near32 stdcall, dSize:dword
 getstring			PROTO Near32 stdcall, lpStringToGet:dword, dlength:dword
 ascint32			PROTO Near32 stdcall, lpStringToConvert:dword  
+intasc32			PROTO Near32 stdcall, lpStringToHold:dword, dval:dword
 
 extern String_equals: Near32, String_equalsIgnoreCase: Near32,
 	   String_copy: Near32, String_substring_1: Near32, String_substring_2: Near32,
@@ -71,13 +72,13 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 			jmp INPUT_END
 		.endif
 
-		; push offset strOption2a
-		; call String_equalsIgnoreCase
-		; add esp, 4
-		; .if al == 1
-		; 	call getLineKeyboard
-		; 	jmp INPUT_END
-		; .endif
+		push offset strOption2a
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			call getLineKeyboard
+			jmp INPUT_END
+		.endif
 
 		; push offset strOption2b
 		; call String_equalsIgnoreCase
@@ -101,6 +102,37 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		invoke putstring, addr strCrlf
 		invoke putstring, addr strCrlf
 		add esp, 4 ; clean up command from stack, then continue
+	endm
+
+	mPrintDocLine macro line
+		invoke putstring, addr strDocumentLeft
+		invoke intasc32, addr strLineNum, dLineNum
+		invoke putstring, addr strLineNum
+
+		.if dLineNum <= 999
+			invoke putstring, addr strSpace
+		.endif
+		.if dLineNum <= 99
+			invoke putstring, addr strSpace
+		.endif
+		.if dLineNum <= 9
+			invoke putstring, addr strSpace
+		.endif
+
+		invoke putstring, addr strDocumentSep
+		invoke putstring, line
+
+		push line
+		call String_length
+		pop line
+		mov cx, MAX_LINE_LENGTH
+		sub cx, ax
+		.repeat
+			invoke putstring, addr strSpace
+		.untilcxz
+
+		invoke putstring, addr strDocumentRight
+		inc dLineNum
 	endm
 
 .data
@@ -135,10 +167,28 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strOption6			byte	"6",0
 	strOption7			byte	"7",0
 
+	;;;;;;;;;;;;;;;;;;; PRINT DOCUMENT ;;;;;;;;;;;;;;;;;;;;;;
+	strDocumentTop		byte	201, 4 dup (205), 209, MAX_LINE_LENGTH dup (205), 187, 13, 10, 0
+	strDocumentLeft		byte	186, 0
+	strDocumentSep		byte	179, 0
+	strDocumentRight	byte	186,13,10,0
+	strDocumentBottom	byte	200, 4 dup(205), 207, MAX_LINE_LENGTH dup (205), 188,13,10,0
+
+	dLineNum			dword	?
+	strLineNum			byte	4 dup (32),0
+
+	;;;;;;;;;;;;;;;;;;; ADD TEXT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	strEnterText		byte	13,10,"Enter some text: ", 0
+	strKeyboardLine		byte	MAX_LINE_LENGTH dup (?), 0
+
+	;;;;;;;;;;;;;;;;;; FORMATTING ;;;;;;;;;;;;;;;;;;;;;;;;;;
+	strSpace		byte	32, 0
 	strCrlf			byte	13,10,0
 
+	;;;;;;;;;;;;;;;;;; FLOW CONTROL ;;;;;;;;;;;;;;;;;;;;;;;
 	bShouldExit		byte	0
 
+	;;;;;;;;;;;;;;;;;; LINKED LIST ;;;;;;;;;;;;;;;;;;;;;;;;;
 	head		dword	0
 	tail		dword	0
 .code
@@ -194,14 +244,29 @@ addLine endp
 
 printDocument proc
 	mov esi, head
+	mov dLineNum, 1
+
+	invoke putstring, addr strDocumentTop
 
 	.while esi != 0
-		invoke putstring, esi
+		mPrintDocLine esi
 		mov esi, (Line ptr [esi]).next
 	.endw
 
+	invoke putstring, addr strDocumentBottom
+
 	ret
 printDocument endp
+
+getLineKeyboard proc
+	invoke putstring, addr strEnterText
+	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
+	push offset strKeyboardLine
+	call addLine
+	add esp, 4
+
+	ret
+getLineKeyboard endp
 
 _main:
 	.while bShouldExit == 0
