@@ -88,6 +88,14 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		; 	jmp INPUT_END
 		; .endif
 
+		push offset strOption3
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			call deletePrompt
+			jmp INPUT_END
+		.endif
+
 		push offset strOption7
 		call String_equalsIgnoreCase
 		add esp, 4
@@ -210,6 +218,10 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strEnterText		byte	13,10,"Enter some text: ", 0
 	strKeyboardLine		byte	MAX_LINE_LENGTH dup (?), 0
 
+	;;;;;;;;;;;;;;;;;;; DELETE LINE ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	strSelectLine		byte	13,10,"Enter a line number: ",0
+	strLineInput		byte	4 dup (?),0
+
 	;;;;;;;;;;;;;;;;;; FORMATTING ;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strSpace		byte	32, 0
 	strCrlf			byte	13,10,0
@@ -275,6 +287,32 @@ addLine proc, text: ptr byte
 	ret
 addLine endp
 
+deleteLine proc, lineNum: dword
+	.if head == 0
+		ret
+	.endif
+	.if lineNum == 0
+		mov edi, head
+		mov edx, (Line ptr [edi]).next
+		mov head, edx
+		ret
+	.endif
+
+	mov esi, head
+	mov ecx, lineNum
+	dec ecx
+	.while ecx != 0
+		mov esi, (Line ptr [esi]).next
+		dec ecx
+	.endw
+	
+	mov edi, (Line ptr [esi]).next
+	mov edx, (Line ptr [edi]).next
+	mov (Line ptr [esi]).next, edx
+
+	ret
+deleteLine endp
+
 printDocument proc
 	mov esi, head
 	mov dLineNum, 1
@@ -300,6 +338,17 @@ getLineKeyboard proc
 
 	ret
 getLineKeyboard endp
+
+deletePrompt proc
+	invoke putstring, addr strSelectLine
+	invoke getstring, addr strLineInput, 4
+	invoke ascint32, addr strLineInput
+	dec eax
+	push eax
+	call deleteLine
+	add esp, 4
+	ret
+deletePrompt endp
 
 _main:
 	.while bShouldExit == 0
