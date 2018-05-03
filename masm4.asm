@@ -334,6 +334,12 @@ editLine proc, lineNum: dword, newText: ptr byte
 		dec ecx
 	.endw
 
+	mov ecx, 0
+	.while byte ptr [edi + ecx] != 0
+		mov byte ptr [edi + ecx], 0
+		inc ecx
+	.endw
+
 	mov esi, newText
 	mov ecx, 0
 	.while byte ptr [esi + ecx] != 0
