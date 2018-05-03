@@ -440,22 +440,22 @@ searchString proc, substring: ptr byte
 	invoke putstring, addr strSearchHeadSep
 
 	mov esi, head
-	mov ecx, 1
+	mov edx, 1
 	.while esi != 0
-		push ecx
+		push edx
 		push substring
 		push esi
 		call String_indexOf_3
 		pop esi
 		add esp, 4
-		pop ecx
+		pop edx
 
 		.if eax != -1
-			mPrintSearchLine esi, ecx
+			mPrintSearchLine esi, edx
 		.endif
 
 		mov esi, (Line ptr [esi]).next
-		inc ecx
+		inc edx
 	.endw
 
 	invoke putstring, addr strSearchBottom
