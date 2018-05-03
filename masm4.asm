@@ -96,6 +96,14 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 			jmp INPUT_END
 		.endif
 
+		push offset strOption4
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			call editPrompt
+			jmp INPUT_END
+		.endif
+
 		push offset strOption7
 		call String_equalsIgnoreCase
 		add esp, 4
@@ -313,6 +321,29 @@ deleteLine proc, lineNum: dword
 	ret
 deleteLine endp
 
+editLine proc, lineNum: dword, newText: ptr byte
+	.if head == 0
+		ret
+	.endif
+
+	mov edi, head
+	mov ecx, lineNum
+	.while ecx != 0
+		mov edi, (Line ptr [edi]).next
+		dec ecx
+	.endw
+
+	mov esi, newText
+	mov ecx, 0
+	.while byte ptr [esi + ecx] != 0
+		mov al, byte ptr [esi + ecx]
+		mov byte ptr [edi + ecx], al
+		inc ecx
+	.endw
+
+	ret
+editLine endp
+
 printDocument proc
 	mov esi, head
 	mov dLineNum, 1
@@ -349,6 +380,21 @@ deletePrompt proc
 	add esp, 4
 	ret
 deletePrompt endp
+
+editPrompt proc
+	invoke putstring, addr strSelectLine
+	invoke getstring, addr strLineInput, 4
+	invoke ascint32, addr strLineInput
+	dec eax
+
+	invoke putstring, addr strEnterText
+	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
+	push offset strKeyboardLine
+	push eax
+	call editLine
+	add esp, 8
+	ret
+editPrompt endp
 
 _main:
 	.while bShouldExit == 0
