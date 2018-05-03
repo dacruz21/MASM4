@@ -213,6 +213,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strOption7			byte	"7",0
 
 	;;;;;;;;;;;;;;;;;;; PRINT DOCUMENT ;;;;;;;;;;;;;;;;;;;;;;
+	strDocumentEmpty	byte	"<The document is empty>",0
 	strDocumentTop		byte	201, 4 dup (205), 209, MAX_LINE_LENGTH dup (205), 187, 13, 10, 0
 	strDocumentLeft		byte	186, 0
 	strDocumentSep		byte	179, 0
@@ -345,6 +346,11 @@ editLine proc, lineNum: dword, newText: ptr byte
 editLine endp
 
 printDocument proc
+	.if head == 0
+		invoke putstring, addr strDocumentEmpty
+		ret
+	.endif
+
 	mov esi, head
 	mov dLineNum, 1
 
