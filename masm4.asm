@@ -41,7 +41,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	mMenu macro
 		invoke putstring, addr strMenuTop
 		invoke putstring, addr strMenuMem
-		invoke putstring, addr strMenuTest ; todo remove
+		mPrintMem
 		invoke putstring, addr strMenuByte
 		invoke putstring, addr strMenuSep
 		invoke putstring, addr strMenu1
@@ -106,8 +106,6 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 
 	mPrintDocLine macro line
 		invoke putstring, addr strDocumentLeft
-		invoke intasc32, addr strLineNum, dLineNum
-		invoke putstring, addr strLineNum
 
 		.if dLineNum <= 999
 			invoke putstring, addr strSpace
@@ -118,6 +116,9 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		.if dLineNum <= 9
 			invoke putstring, addr strSpace
 		.endif
+
+		invoke intasc32, addr strLineNum, dLineNum
+		invoke putstring, addr strLineNum
 
 		invoke putstring, addr strDocumentSep
 		invoke putstring, line
@@ -133,6 +134,34 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 
 		invoke putstring, addr strDocumentRight
 		inc dLineNum
+	endm
+
+	mPrintMem macro
+		invoke intasc32, addr strMemUse, dMemUse
+
+		.if dMemUse <= 9999999
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 999999
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 99999
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 9999
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 999
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 99
+			invoke putstring, addr strZero
+		.endif
+		.if dMemUse <= 9
+			invoke putstring, addr strZero
+		.endif
+
+		invoke putstring, addr strMemUse
 	endm
 
 .data
@@ -175,7 +204,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strDocumentBottom	byte	200, 4 dup(205), 207, MAX_LINE_LENGTH dup (205), 188,13,10,0
 
 	dLineNum			dword	?
-	strLineNum			byte	4 dup (32),0
+	strLineNum			byte	4 dup (?),0
 
 	;;;;;;;;;;;;;;;;;;; ADD TEXT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strEnterText		byte	13,10,"Enter some text: ", 0
@@ -184,6 +213,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	;;;;;;;;;;;;;;;;;; FORMATTING ;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strSpace		byte	32, 0
 	strCrlf			byte	13,10,0
+	strZero			byte	"0",0
 
 	;;;;;;;;;;;;;;;;;; FLOW CONTROL ;;;;;;;;;;;;;;;;;;;;;;;
 	bShouldExit		byte	0
@@ -191,6 +221,8 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	;;;;;;;;;;;;;;;;;; LINKED LIST ;;;;;;;;;;;;;;;;;;;;;;;;;
 	head		dword	0
 	tail		dword	0
+	dMemUse		dword	0
+	strMemUse	byte	8 dup (?), 0
 .code
 
 String_length proc, _string1: ptr byte
@@ -210,6 +242,7 @@ String_length endp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 newLine proc
 	invoke memoryallocBailey, sizeof Line
+	add dMemUse, sizeof Line
 	mov (Line ptr [eax]).next, 0
 	
 	.if head == 0
