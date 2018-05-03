@@ -80,7 +80,7 @@ String_indexOf_2 proc, string1: ptr byte, char: ptr byte, fromIndex: dword
 String_indexOf_2 endp
 
 ;***********************************************************************
-String_indexOf_3 proc, string1: ptr byte, string2: ptr byte
+String_indexOf_3 proc uses ebx ecx edx esi edi, string1: ptr byte, string2: ptr byte 
 ; This method returns the index of first occurrence of 
 ; specified substring str.
 ;***********************************************************************
@@ -302,7 +302,7 @@ String_replace proc, string1: ptr byte, oldChar: ptr byte, newChar: ptr byte
 String_replace endp
 
 ;***********************************************************************
-String_toLowerCase proc, string1: ptr byte
+String_toLowerCase proc uses esi, string1: ptr byte
 ; It converts the string to lower case string
 ;***********************************************************************
     mov esi, string1                ; get string to convert from the stack

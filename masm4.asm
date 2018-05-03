@@ -421,45 +421,33 @@ editLine proc, lineNum: dword, newText: ptr byte
 editLine endp
 
 searchString proc, substring: ptr byte
-	invoke putstring, addr strSearchTop
-	invoke putstring, addr strSearchHeadLeft
-	invoke putstring, substring
-	invoke putstring, addr strSearchEndQuote
-	
-	push substring
-	call String_length
-	add esp, 4
-	mov ebx, 83
-	sub ebx, eax
-	.while ebx != 0
-		invoke putstring, addr strSpace
-		dec ebx
-	.endw
-
-	invoke putstring, addr strSearchRight
-	invoke putstring, addr strSearchHeadSep
-
 	mov esi, head
 	mov edx, 1
 	.while esi != 0
-		push edx
 		push substring
-		push esi
-		call String_indexOf_3
-		pop esi
+		call String_toLowerCase ; convert substring to lowercase
 		add esp, 4
-		pop edx
 
-		.if eax != -1
-			mPrintSearchLine esi, edx
+		push esi
+		call String_copy		; make a copy of the string from the linked list
+		add esp, 4
+
+		push eax
+		call String_toLowerCase	; make the copy lowercase
+		pop eax
+
+		push substring
+		push eax
+		call String_indexOf_3	; search for lower(substring) in lower(esi)
+		add esp, 8
+
+		.if eax != -1			; if EAX != -1, esi contains substring
+			mPrintSearchLine esi, edx	; print the line number and the string
 		.endif
 
-		mov esi, (Line ptr [esi]).next
-		inc edx
+		mov esi, (Line ptr [esi]).next	; get the next node with ESI->next
+		inc edx							; increase the line number
 	.endw
-
-	invoke putstring, addr strSearchBottom
-
 	ret
 searchString endp
 
@@ -503,9 +491,31 @@ searchPrompt proc
 	invoke putstring, addr strEnterText
 	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
 	invoke putstring, addr strCrlf
+
+	invoke putstring, addr strSearchTop
+	invoke putstring, addr strSearchHeadLeft
+	invoke putstring, addr strKeyboardLine
+	invoke putstring, addr strSearchEndQuote
+	
+	push offset strKeyboardLine
+	call String_length
+	add esp, 4
+	mov ebx, 83
+	sub ebx, eax
+	.while ebx != 0
+		invoke putstring, addr strSpace
+		dec ebx
+	.endw
+
+	invoke putstring, addr strSearchRight
+	invoke putstring, addr strSearchHeadSep
+
 	push offset strKeyboardLine
 	call searchString
-	add esp, 4
+	add esp, 4	
+
+	invoke putstring, addr strSearchBottom
+
 	ret
 searchPrompt endp
 
