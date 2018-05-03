@@ -16,6 +16,8 @@ option casemap:none
 ExitProcess 		PROTO Near32 stdcall, dVal:dword
 putstring 			PROTO Near32 stdcall, lpStringToPrint:dword
 memoryallocBailey	PROTO Near32 stdcall, dSize:dword
+getstring			PROTO Near32 stdcall, lpStringToGet:dword, dlength:dword
+ascint32			PROTO Near32 stdcall, lpStringToConvert:dword  
 
 extern String_equals: Near32, String_equalsIgnoreCase: Near32,
 	   String_copy: Near32, String_substring_1: Near32, String_substring_2: Near32,
@@ -52,6 +54,53 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		invoke putstring, addr strMenu7
 		invoke putstring, addr strMenuEnd
 	endm
+
+	mInput macro
+		invoke putstring, addr strInputPrompt
+		invoke getstring, addr strInput, 2
+		
+		push offset strInput
+
+		push offset strOption1
+		call String_equalsIgnoreCase
+		add esp, 4	; leave strInput on stack
+		.if al == 1
+			invoke putstring, addr strCrlf
+			invoke putstring, addr strCrlf
+			call printDocument
+			jmp INPUT_END
+		.endif
+
+		; push offset strOption2a
+		; call String_equalsIgnoreCase
+		; add esp, 4
+		; .if al == 1
+		; 	call getLineKeyboard
+		; 	jmp INPUT_END
+		; .endif
+
+		; push offset strOption2b
+		; call String_equalsIgnoreCase
+		; add esp, 4
+		; .if al == 1
+		; 	call getLineFile
+		; 	jmp INPUT_END
+		; .endif
+
+		push offset strOption7
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			mov bShouldExit, 1
+			jmp INPUT_END
+		.endif
+
+		invoke putstring, addr strInvalidCommand
+
+	INPUT_END: 
+		invoke putstring, addr strCrlf
+		invoke putstring, addr strCrlf
+		add esp, 4 ; clean up command from stack, then continue
 	endm
 
 .data
@@ -72,6 +121,23 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strMenu7	byte	4 dup (32), 186, " <7> Quit", 42 dup (32),186,13,10,0
 	strMenuEnd	byte	4 dup (32), 200, 51 dup(205),188,13,10,0
 
+	;;;;;;;;;;;;;;;;;;;;; INPUT ;;;;;;;;;;;;;;;;;;;;;
+	strInput			byte	2 dup (?),0
+	strInputPrompt		byte	13,10,"Enter a command: ", 0
+	strInvalidCommand 	byte	13,10,"Invalid command!", 0
+
+	strOption1			byte	"1",0
+	strOption2a			byte	"2a",0
+	strOption2b			byte	"2b",0
+	strOption3			byte	"3",0
+	strOption4			byte	"4",0
+	strOption5			byte	"5",0
+	strOption6			byte	"6",0
+	strOption7			byte	"7",0
+
+	strCrlf			byte	13,10,0
+
+	bShouldExit		byte	0
 
 	head		dword	0
 	tail		dword	0
@@ -138,7 +204,10 @@ printDocument proc
 printDocument endp
 
 _main:
-	mMenu
+	.while bShouldExit == 0
+		mMenu
+		mInput
+	.endw
 
 	invoke ExitProcess, 0
 end _main
