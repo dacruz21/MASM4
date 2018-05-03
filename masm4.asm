@@ -224,7 +224,6 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strMenuTop	byte	4 dup (32), 201,15 dup(205), 181, " MASM 4 TEXT EDITOR ", 198, 14 dup (205),187,13,10,0
 	strMenuMem	byte	4 dup (32), 186, " Data Structure Memory Consumption: ", 0
 	strMenuByte byte	" bytes ",186,13,10,0
-	strMenuTest byte	"00000000",0 ; todo remove
 	strMenuSep	byte	4 dup (32), 199, 51 dup (196), 182, 13, 10, 0
 	strMenu1	byte	4 dup (32), 186, " <1> View all strings", 30 dup (32), 186,13,10,0
 	strMenu2	byte	4 dup (32), 186, " <2> Add String", 36 dup (32), 186,13,10,0
