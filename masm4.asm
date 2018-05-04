@@ -471,14 +471,14 @@ searchString endp
 
 getLineKeyboard proc
 start:
-	invoke putstring, addr strGetline
-	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
-	.if strKeyboardLine == 4        ; if End Of Transmission entered
+    invoke putstring, addr strGetline
+    invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
+    .if strKeyboardLine == 4        ; if End Of Transmission entered
         ret                         ; Don't make new node, return
-	.endif
-	push offset strKeyboardLine
-	call addLine                    ; create new node
-	add esp, 4
+    .endif
+    push offset strKeyboardLine
+    call addLine                    ; create new node
+    add esp, 4
     jmp start                       ; keep getting more lines until user enters Ctrl-D
 getLineKeyboard endp
 
@@ -547,30 +547,30 @@ getFromFile PROC
 ;------------------------------------------------------
 
     ;;;;; Open the existing input.txt
-	invoke putstring, addr strGetFileName
-	invoke getstring, addr strFileName, 10; get file name
+    invoke putstring, addr strGetFileName
+    invoke getstring, addr strFileName, 10; get file name
     invoke CreateFile,                    ; creates file handle in eax
            addr strFileName, GENERIC_READ, 0, 0,\
            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
-	mov hFileHandle, eax                  ; save our new file handle
+    mov hFileHandle, eax                  ; save our new file handle
 
     ;;;;; Check for errors opening file
-    cmp	eax, INVALID_HANDLE_VALUE		  ; error opening file?
-	jne	file_ok	
+    cmp	eax, INVALID_HANDLE_VALUE         ; error opening file?
+    jne	file_ok	
     invoke putstring, addr strFileOpenError
-	jmp quit
-    
-	;;;;; Get the size of the file to know how much memory to allocate
+    jmp quit
+
+    ;;;;; Get the size of the file to know how much memory to allocate
 file_ok:
     invoke GetFileSize, eax, 0            ; determine the size of the file we are dealing with
-	mov dFileSize, eax                    ; save the file size
+    mov dFileSize, eax                    ; save the file size
     inc eax                               ; +1 to append a null
 
     ;;;;; Allocate the memory
     invoke  GlobalAlloc,GMEM_FIXED,eax    ; allocate memory equal to file size
     mov     dBuffer, eax                  ; save our newly allocated memory object
     add eax, dFileSize                    ; move the end of the buffer
-	mov byte ptr [eax], 0                 ; place a null 
+    mov byte ptr [eax], 0                 ; place a null 
 
     ;;;;; Read the file into the allocated buffer
     invoke  ReadFile, hFileHandle, dBuffer, dFileSize, addr dBytesRead,0
@@ -578,11 +578,11 @@ file_ok:
     ;TO DO: Parse the buffer, continually adding lines terminated by Crlf
 
     ;;;;; Close the file
-	invoke CloseHandle, hFileHandle       ; close the handle
-	;invoke  GlobalFree,dBuffer           ; free the memory
+    invoke CloseHandle, hFileHandle       ; close the handle
+    ;invoke  GlobalFree,dBuffer           ; free the memory
 
 quit:
-	ret
+    ret
 getFromFile ENDP
 
 _main:
