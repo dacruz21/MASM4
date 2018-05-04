@@ -264,6 +264,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	;;;;;;;;;;;;;;;;;;; ADD TEXT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strEnterText		byte	13,10,"Enter some text: ", 0
 	strKeyboardLine		byte	MAX_LINE_LENGTH dup (?), 0
+	strGetline          byte    13,10,"Enter some text. Enter a single CTRL-D to stop: ", 0
 
 	;;;;;;;;;;;;;;;;;;; DELETE LINE ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strSelectLine		byte	13,10,"Enter a line number: ",0
@@ -452,13 +453,16 @@ searchString proc, substring: ptr byte
 searchString endp
 
 getLineKeyboard proc
-	invoke putstring, addr strEnterText
+start:
+	invoke putstring, addr strGetline
 	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
+	.if strKeyboardLine == 4        ; if End Of Transmission entered
+        ret                         ; Don't make new node, return
+	.endif
 	push offset strKeyboardLine
-	call addLine
+	call addLine                    ; create new node
 	add esp, 4
-
-	ret
+    jmp start                       ; keep getting more lines until user enters Ctrl-D
 getLineKeyboard endp
 
 deletePrompt proc
