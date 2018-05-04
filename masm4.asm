@@ -13,6 +13,12 @@
 .stack 100h
 option casemap:none
 
+include     \masm32\include\windows.inc
+include     \masm32\include\kernel32.inc
+include     \masm32\include\user32.inc
+includelib  \masm32\lib\kernel32.lib
+includelib  \masm32\lib\user32.lib
+
 ExitProcess 		PROTO Near32 stdcall, dVal:dword
 putstring 			PROTO Near32 stdcall, lpStringToPrint:dword
 memoryallocBailey	PROTO Near32 stdcall, dSize:dword
@@ -80,13 +86,13 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 			jmp INPUT_END
 		.endif
 
-		; push offset strOption2b
-		; call String_equalsIgnoreCase
-		; add esp, 4
-		; .if al == 1
-		; 	call getLineFile
-		; 	jmp INPUT_END
-		; .endif
+		push offset strOption2b
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+		    call getFromFile
+		    jmp INPUT_END
+		.endif
 
 		push offset strOption3
 		call String_equalsIgnoreCase
@@ -293,6 +299,17 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	tail		dword	0
 	dMemUse		dword	0
 	strMemUse	byte	8 dup (?), 0
+	
+    ;;;;;;;;;;;;;;;;;; FILE HANDLING ;;;;;;;;;;;;;;;;;;;;;;;
+	strGetFileName     byte    13,10,"Enter an input filename: ",0 
+	strFileName        byte 80 DUP(0)
+	strFileOpenError   byte "Cannot open file.",13,10
+	strFileReadError   byte "Error reading file.",13,10
+	dFileSize          dword ?
+	dBuffer            dword ?
+	dBytesRead         dword ?
+	hFileHandle        HANDLE ?
+
 .code
 
 String_length proc uses esi, _string1: ptr byte
@@ -522,6 +539,51 @@ searchPrompt proc
 
 	ret
 searchPrompt endp
+
+;------------------------------------------------------
+getFromFile PROC
+; Opens an existing input file & checks for errors.
+; Gets file size & allocates memory.
+;------------------------------------------------------
+
+    ;;;;; Open the existing input.txt
+	invoke putstring, addr strGetFileName
+	invoke getstring, addr strFileName, 10; get file name
+    invoke CreateFile,                    ; creates file handle in eax
+           addr strFileName, GENERIC_READ, 0, 0,\
+           OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
+	mov hFileHandle, eax                  ; save our new file handle
+
+    ;;;;; Check for errors opening file
+    cmp	eax, INVALID_HANDLE_VALUE		  ; error opening file?
+	jne	file_ok	
+    invoke putstring, addr strFileOpenError
+	jmp quit
+    
+	;;;;; Get the size of the file to know how much memory to allocate
+file_ok:
+    invoke GetFileSize, eax, 0            ; determine the size of the file we are dealing with
+	mov dFileSize, eax                    ; save the file size
+    inc eax                               ; +1 to append a null
+
+    ;;;;; Allocate the memory
+    invoke  GlobalAlloc,GMEM_FIXED,eax    ; allocate memory equal to file size
+    mov     dBuffer, eax                  ; save our newly allocated memory object
+    add eax, dFileSize                    ; move the end of the buffer
+	mov byte ptr [eax], 0                 ; place a null 
+
+    ;;;;; Read the file into the allocated buffer
+    invoke  ReadFile, hFileHandle, dBuffer, dFileSize, addr dBytesRead,0
+
+    ;TO DO: Parse the buffer, continually adding lines terminated by Crlf
+
+    ;;;;; Close the file
+	invoke CloseHandle, hFileHandle       ; close the handle
+	;invoke  GlobalFree,dBuffer           ; free the memory
+
+quit:
+	ret
+getFromFile ENDP
 
 _main:
 	.while bShouldExit == 0
