@@ -3,7 +3,7 @@
 ;Program:	MASM4.asm
 ;Class:		CS3B
 ;Lab:		MASM4
-;Date:		May 3, 2018 at 11:59 PM
+;Date:		May 10, 2018 at 11:59 PM
 ;Purpose:
 ;	Use the String1 and String2 libraries to create a text editor
 ;*****************************************************************************
@@ -294,7 +294,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strMemUse	byte	8 dup (?), 0
 .code
 
-String_length proc, _string1: ptr byte
+String_length proc uses esi, _string1: ptr byte
 	mov eax, 0
 	mov esi, _string1
 
