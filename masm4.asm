@@ -600,6 +600,8 @@ file_ok:
                 push offset strFileLine   ; push string address
                 call addLine              ; create new node for string
                 add esp, 4                ; clean stack
+                invoke CloseHandle, hFileHandle ; close the handle
+                invoke GlobalFree,dBuffer ; Data is in our linked list, we can free the memory
                 popad                     ; restore all registers
                 ret                       ; end procedure
             .endif
@@ -611,26 +613,26 @@ file_ok:
             .endif
         .endw
 
-        push ecx                          ; save buffer character count
-        push esi                          ; save buffer address location
-        add esi, ecx                      ; move address to end of how much buffer we've read
-        sub esi, ebx                      ; adjust address to beginning of current line
-        mov ecx, ebx                      ; move the line's char count into ecx
-        cld                               ; clear direction flag
-        mov edi, offset strFileLine       ; get address of destination
-        rep movsb                         ; repeat copy byte from esi to edi until ecx = 0
-        mov byte ptr [edi], 0             ; add null to end of strFileLine
-        pop esi                           ; restore buffer address location
-        pop ecx                           ; restore buffer chararacter count
-        inc ecx                           ; skip the carriage return
-        inc ecx                           ; skip the newline
+	    push ecx                          ; save buffer character count
+	    push esi                          ; save buffer address location
+	    add esi, ecx                      ; move address to end of how much buffer we've read
+	    sub esi, ebx                      ; adjust address to beginning of current line
+	    mov ecx, ebx                      ; move the line's char count into ecx
+	    cld                               ; clear direction flag
+	    mov edi, offset strFileLine       ; get address of destination
+	    rep movsb                         ; repeat copy byte from esi to edi until ecx = 0
+	    mov byte ptr [edi], 0             ; add null to end of strFileLine
+	    pop esi                           ; restore buffer address location
+	    pop ecx                           ; restore buffer chararacter count
+	    inc ecx                           ; skip the carriage return
+	    inc ecx                           ; skip the newline
 
-        pushad                            ; save all registers
-	push offset strFileLine           ; push string address
-	call addLine                      ; create new node for string
-	add esp, 4                        ; clean stack
-	popad                             ; restore all registers
-	xor ebx, ebx                      ; clear line character counter
+	    pushad                            ; save all registers
+	    push offset strFileLine           ; push string address
+	    call addLine                      ; create new node for string
+	    add esp, 4                        ; clean stack
+	    popad                             ; restore all registers
+	    xor ebx, ebx                      ; clear line character counter
 	.until (ecx >= dFileSize)
 
     ;;;;; Close the file & free memory
