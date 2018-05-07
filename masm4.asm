@@ -303,14 +303,14 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	strMemUse	byte	8 dup (?), 0
 	
     ;;;;;;;;;;;;;;;;;; FILE HANDLING ;;;;;;;;;;;;;;;;;;;;;;;
-	strGetFileName     byte    13,10,"Enter an input filename: ",0 
-	strFileName        byte 80 DUP(0)
+	strFileName        byte "input.txt",0
 	strFileOpenError   byte "Cannot open file.",13,10
-	strFileReadError   byte "Error reading file.",13,10
+	strFileLine        byte	MAX_LINE_LENGTH dup (?), 0
 	dFileSize          dword ?
 	dBuffer            dword ?
 	dBytesRead         dword ?
 	hFileHandle        HANDLE ?
+	strLineLenError    byte 13,10,"Error, too many characters on one line in the file.",13,10,0
 
 .code
 
@@ -550,11 +550,10 @@ searchPrompt endp
 getFromFile PROC
 ; Opens an existing input file & checks for errors.
 ; Gets file size & allocates memory.
+; Reads from file and creates pointer to dynamic memory buffer.
+; Parses the buffer line by line, adding each line to the linked list.
 ;------------------------------------------------------
-
     ;;;;; Open the existing input.txt
-    invoke putstring, addr strGetFileName
-    invoke getstring, addr strFileName, 10; get file name
     invoke CreateFile,                    ; creates file handle in eax
            addr strFileName, GENERIC_READ, 0, 0,\
            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0
@@ -573,20 +572,70 @@ file_ok:
     inc eax                               ; +1 to append a null
 
     ;;;;; Allocate the memory
-    invoke  GlobalAlloc,GMEM_FIXED,eax    ; allocate memory equal to file size
-    mov     dBuffer, eax                  ; save our newly allocated memory object
-    add eax, dFileSize                    ; move the end of the buffer
-    mov byte ptr [eax], 0                 ; place a null 
+    invoke  GlobalAlloc,GMEM_FIXED, eax   ; allocate memory equal to file size
+    mov dBuffer, eax                      ; save pointer to memory object
+    add eax, dFileSize                    ; move to the end of the buffer
+    mov byte ptr [eax], 0                 ; place a null at end of buffer
+                                          ; this null will be our EOF flag
 
     ;;;;; Read the file into the allocated buffer
     invoke  ReadFile, hFileHandle, dBuffer, dFileSize, addr dBytesRead,0
 
-    ;TO DO: Parse the buffer, continually adding lines terminated by Crlf
+    ;;;;; Parse the buffer, continually adding lines terminated by carriage return
+    xor ecx, ecx                          ; clear buffer character count
+    xor ebx, ebx                          ; clear the line character count
+    mov esi, dBuffer                      ; get address of buffer
+    .repeat
+        ; Test to see if the last two bytes in a line are carriage return + line feed
+        .while byte ptr [esi + ecx] != 13 && byte ptr [esi + ecx + 1] != 10
+            .if byte ptr [esi + ecx] == 0 ; if we reached the end of the file
+                add esi, ecx              ; move address to end of how much buffer we've read
+                sub esi, ebx              ; adjust address to beginning of current line
+                mov ecx, ebx              ; move the line's char count into ecx
+                cld                       ; clear direction flag
+                mov edi, offset strFileLine ; get address of destination
+                rep movsb                 ; repeat copy byte from esi to edi until ecx = 0
+                mov byte ptr [edi], 0     ; add null to end of strFileLine
+                pushad                    ; save all registers
+                push offset strFileLine   ; push string address
+                call addLine              ; create new node for string
+                add esp, 4                ; clean stack
+                popad                     ; restore all registers
+                ret                       ; end procedure
+            .endif
+            inc ecx                       ; increment buffer character counter
+            inc ebx                       ; increment line character counter
+            .if ebx >= MAX_LINE_LENGTH    ; check if a line in the file was too long
+                invoke putstring, addr strLineLenError
+                jmp quit                  ; if error caught, return early
+            .endif
+        .endw
 
-    ;;;;; Close the file
+        push ecx                          ; save buffer character count
+        push esi                          ; save buffer address location
+        add esi, ecx                      ; move address to end of how much buffer we've read
+        sub esi, ebx                      ; adjust address to beginning of current line
+        mov ecx, ebx                      ; move the line's char count into ecx
+        cld                               ; clear direction flag
+        mov edi, offset strFileLine       ; get address of destination
+        rep movsb                         ; repeat copy byte from esi to edi until ecx = 0
+        mov byte ptr [edi], 0             ; add null to end of strFileLine
+        pop esi                           ; restore buffer address location
+        pop ecx                           ; restore buffer chararacter count
+        inc ecx                           ; skip the carriage return
+        inc ecx                           ; skip the newline
+
+        pushad                            ; save all registers
+	push offset strFileLine           ; push string address
+	call addLine                      ; create new node for string
+	add esp, 4                        ; clean stack
+	popad                             ; restore all registers
+	xor ebx, ebx                      ; clear line character counter
+	.until (ecx >= dFileSize)
+
+    ;;;;; Close the file & free memory
     invoke CloseHandle, hFileHandle       ; close the handle
-    ;invoke  GlobalFree,dBuffer           ; free the memory
-
+    invoke  GlobalFree,dBuffer            ; Data is in our linked list, we can free the memory
 quit:
     ret
 getFromFile ENDP
