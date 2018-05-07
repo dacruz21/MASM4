@@ -295,7 +295,8 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	;;;;;;;;;;;;;;;;;; FLOW CONTROL ;;;;;;;;;;;;;;;;;;;;;;;
 	bShouldExit		byte	0
 
-	;;;;;;;;;;;;;;;;;; LINKED LIST ;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;;;;;;;;;;;;;;; MEMORY MANAGEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;
+	heap		dword	0		
 	head		dword	0
 	tail		dword	0
 	dMemUse		dword	0
@@ -329,7 +330,7 @@ String_length endp
 ; Allocates memory for a new line and places it at the end of the linked list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 newLine proc
-	invoke memoryallocBailey, sizeof Line
+	invoke HeapAlloc, heap, HEAP_ZERO_MEMORY, sizeof Line
 	add dMemUse, sizeof Line
 	mov (Line ptr [eax]).next, 0
 	
@@ -390,8 +391,11 @@ deleteLine proc, lineNum: dword
 	.endif
 	.if lineNum == 0
 		mov edi, head
+		invoke HeapFree, heap, 0, edi
 		mov edx, (Line ptr [edi]).next
 		mov head, edx
+		sub dMemUse, sizeof Line
+
 		ret
 	.endif
 
@@ -588,6 +592,9 @@ quit:
 getFromFile ENDP
 
 _main:
+	call GetProcessHeap
+	mov heap, eax
+
 	.while bShouldExit == 0
 		mMenu
 		mInput
