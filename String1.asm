@@ -89,7 +89,7 @@ String_equalsIgnoreCase proc, string1: ptr byte, string2: ptr byte
 	ret
 String_equalsIgnoreCase endp
 
-String_copy proc uses esi ecx ebx, string1: ptr byte
+String_copy proc uses ebx ecx esi, string1: ptr byte
 	push string1
 	call String_length			; get the length of the string (num bytes to allocate)
 	inc eax						; add 1 for the NULL

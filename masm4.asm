@@ -187,7 +187,8 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 
 		push line
 		call String_length
-		pop line
+		add esp, 4
+		
 		mov cx, MAX_LINE_LENGTH
 		sub cx, ax
 		.repeat
@@ -441,11 +442,12 @@ editLine endp
 searchString proc, substring: ptr byte
 	mov esi, head
 	mov edx, 1
-	.while esi != 0
-		push substring
-		call String_toLowerCase ; convert substring to lowercase
-		add esp, 4
 
+	push substring
+	call String_toLowerCase
+	add esp, 4
+
+	.while esi != 0
 		push esi
 		call String_copy		; make a copy of the string from the linked list
 		add esp, 4
