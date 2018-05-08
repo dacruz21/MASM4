@@ -302,7 +302,7 @@ String_replace proc, string1: ptr byte, oldChar: ptr byte, newChar: ptr byte
 String_replace endp
 
 ;***********************************************************************
-String_toLowerCase proc uses esi, string1: ptr byte
+String_toLowerCase proc uses eax esi, string1: ptr byte
 ; It converts the string to lower case string
 ;***********************************************************************
     mov esi, string1                ; get string to convert from the stack

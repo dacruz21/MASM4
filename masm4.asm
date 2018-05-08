@@ -155,11 +155,11 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		push line
 		call String_length
 		add esp, 4
-		mov cx, MAX_LINE_LENGTH
-		sub cx, ax
-		; .repeat
-		; 	invoke putstring, addr strSpace
-		; .untilcxz
+		mov ecx, MAX_LINE_LENGTH
+		sub ecx, eax
+		.repeat
+			invoke putstring, addr strSpace
+		.untilcxz
 
 		invoke putstring, addr strDocumentRight
 		inc dLineNum
@@ -316,7 +316,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 .code
 
 String_length proc uses esi, _string1: ptr byte
-	mov eax, 0
+	xor eax, eax
 	mov esi, _string1
 
 	.while byte ptr [esi] != 0 ; for each character in ESI that is not NULL
@@ -335,7 +335,7 @@ String_copy proc uses ebx ecx esi, string1: ptr byte
 	invoke HeapAlloc, heap, HEAP_ZERO_MEMORY, ebx
 
 	mov esi, string1
-	mov ecx, 0
+	xor ecx, ecx
 	.while byte ptr [esi + ecx] != 0	; for each character in the source string
 		mov bl, byte ptr [esi + ecx]	; get the character into a register
 		mov byte ptr [eax + ecx], bl	; move the character into the new memory location
@@ -408,6 +408,8 @@ addLine proc, text: ptr byte
 	call newLine
 	mov (Line ptr [eax]).text, ebx
 
+	inc dLinesUsed
+
 	ret
 addLine endp
 
@@ -453,6 +455,8 @@ deleteLine proc, lineNum: dword
 	invoke HeapFree, heap, 0, (Line ptr [edi]).text
 	invoke HeapFree, heap, 0, edi
 
+	dec dLinesUsed
+
 	ret
 deleteLine endp
 
@@ -481,10 +485,6 @@ editLine endp
 searchString proc, substring: ptr byte
 	mov esi, head
 	mov edx, 1
-
-	push substring
-	call String_toLowerCase
-	add esp, 4
 
 	.while esi != 0
 		push esi
@@ -566,6 +566,10 @@ searchPrompt proc
 	invoke putstring, addr strEnterText
 	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
 	invoke putstring, addr strCrlf
+
+	push offset strKeyboardLine
+	call String_toLowerCase
+	add esp, 4
 
 	invoke putstring, addr strSearchTop
 	invoke putstring, addr strSearchHeadLeft
