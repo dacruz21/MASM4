@@ -481,7 +481,19 @@ editLine proc, lineNum: dword, newText: ptr byte
 		dec ecx
 	.endw
 
+	push (Line ptr [edi]).text
+	call String_length
+	add esp, 4
+	inc eax
+	sub dMemUse, eax
+
 	invoke HeapFree, heap, 0, (Line ptr [edi]).text
+
+	push newText
+	call String_length
+	add esp, 4
+	inc eax
+	add dMemUse, eax
 
 	push newText
 	call String_copy
