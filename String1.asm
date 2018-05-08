@@ -89,25 +89,6 @@ String_equalsIgnoreCase proc, string1: ptr byte, string2: ptr byte
 	ret
 String_equalsIgnoreCase endp
 
-String_copy proc uses ebx ecx esi, string1: ptr byte
-	push string1
-	call String_length			; get the length of the string (num bytes to allocate)
-	inc eax						; add 1 for the NULL
-
-	invoke memoryallocBailey, eax
-
-	mov esi, string1
-	mov ecx, 0
-	.while byte ptr [esi + ecx] != 0	; for each character in the source string
-		mov bl, byte ptr [esi + ecx]	; get the character into a register
-		mov byte ptr [eax + ecx], bl	; move the character into the new memory location
-		inc ecx							; go to next char
-	.endw
-
-	; memory address is already in EAX, ready to return
-	ret
-String_copy endp
-
 String_substring_1 proc, string1: ptr byte, beginIndex: dword, endIndex: dword
 	push string1
 	call String_length

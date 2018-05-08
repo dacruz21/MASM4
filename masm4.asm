@@ -27,7 +27,7 @@ ascint32			PROTO Near32 stdcall, lpStringToConvert:dword
 intasc32			PROTO Near32 stdcall, lpStringToHold:dword, dval:dword
 
 extern String_equals: Near32, String_equalsIgnoreCase: Near32,
-	   String_copy: Near32, String_substring_1: Near32, String_substring_2: Near32,
+	   String_substring_1: Near32, String_substring_2: Near32,
 	   String_charAt: Near32, String_startsWith_1: Near32, String_startsWith_2: Near32,
 	   String_endsWith: Near32
 	   
@@ -39,8 +39,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	MAX_LINE_LENGTH = 100
 	
 	Line struct
-		text		byte	MAX_LINE_LENGTH dup (?),0
-		align 		dword
+		text		dword	0
 		next		dword	0
 	Line ends
 
@@ -155,12 +154,12 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 
 		push line
 		call String_length
-		pop line
+		add esp, 4
 		mov cx, MAX_LINE_LENGTH
 		sub cx, ax
-		.repeat
-			invoke putstring, addr strSpace
-		.untilcxz
+		; .repeat
+		; 	invoke putstring, addr strSpace
+		; .untilcxz
 
 		invoke putstring, addr strDocumentRight
 		inc dLineNum
@@ -296,7 +295,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	bShouldExit		byte	0
 
 	;;;;;;;;;;;;;;;;;; MEMORY MANAGEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;
-	heap		dword	0		
+	heap		HANDLE	0		
 	head		dword	0
 	tail		dword	0
 	dMemUse		dword	0
@@ -325,14 +324,35 @@ String_length proc uses esi, _string1: ptr byte
 	ret
 String_length endp
 
+String_copy proc uses ebx ecx esi, string1: ptr byte
+	push string1
+	call String_length			; get the length of the string (num bytes to allocate)
+	inc eax						; add 1 for the NULL
+	mov ebx, eax
+
+	invoke HeapAlloc, heap, HEAP_ZERO_MEMORY, ebx
+
+	mov esi, string1
+	mov ecx, 0
+	.while byte ptr [esi + ecx] != 0	; for each character in the source string
+		mov bl, byte ptr [esi + ecx]	; get the character into a register
+		mov byte ptr [eax + ecx], bl	; move the character into the new memory location
+		inc ecx							; go to next char
+	.endw
+	mov byte ptr [eax + ecx], 0
+
+	; memory address is already in EAX, ready to return
+	ret
+String_copy endp
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; newLine
 ; Allocates memory for a new line and places it at the end of the linked list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 newLine proc
 	invoke HeapAlloc, heap, HEAP_ZERO_MEMORY, sizeof Line
-	add dMemUse, sizeof Line
 	mov (Line ptr [eax]).next, 0
+	mov (Line ptr [eax]).text, 0
 	
 	.if head == 0
 		mov head, eax
@@ -357,7 +377,7 @@ printDocument proc
 	invoke putstring, addr strDocumentTop
 
 	.while esi != 0
-		mPrintDocLine esi
+		mPrintDocLine (Line ptr [esi]).text
 		mov esi, (Line ptr [esi]).next
 	.endw
 
@@ -371,31 +391,44 @@ printDocument endp
 ; Creates a new node and adds text to it
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 addLine proc, text: ptr byte
-	call newLine
+	push text
+	call String_length
+	add esp, 4
+	inc eax						; string_length doesn't include null
+	add dMemUse, eax
+	add dMemUse, sizeof Line
 
-	mov esi, text					; store the address of the text to add
-	mov edi, eax 					; address to store the text
-	mov ecx, 0						; LCV that iterates over each char
-	.while byte ptr [esi + ecx] != 0	; iterate until we find a \0 NULL
-		mov al, byte ptr [esi + ecx]	; get the char at position ecx
-		mov byte ptr [edi + ecx], al	; move it into the string
-		inc ecx							; goto next char
-	.endw
+	push text
+	call String_copy
+	add esp, 4
+	mov ebx, eax
+
+	call newLine
+	mov (Line ptr [eax]).text, ebx
 
 	ret
 addLine endp
 
 deleteLine proc, lineNum: dword
-	.if head == 0
-		ret
+	.if head == 0	; if head = NULL (list empty)
+		ret			; nothing to do
 	.endif
-	.if lineNum == 0
-		mov edi, head
-		invoke HeapFree, heap, 0, edi
-		mov edx, (Line ptr [edi]).next
-		mov head, edx
-		sub dMemUse, sizeof Line
 
+	.if lineNum == 0					; if the line to delete is the first line/node
+		mov edi, head					; get the address of the first node
+		mov edx, (Line ptr [edi]).next	; get the second node (head->next)
+		mov head, edx					; set head equal to the second node
+
+		push (Line ptr [edi]).text
+		call String_length
+		add esp, 4
+
+		sub dMemUse, eax
+
+		invoke HeapFree, heap, 0, (Line ptr [edi]).text	; deallocate the first node's text
+		invoke HeapFree, heap, 0, edi					; deallocate the first node itself
+
+		sub dMemUse, sizeof Line
 		ret
 	.endif
 
@@ -410,6 +443,13 @@ deleteLine proc, lineNum: dword
 	mov edi, (Line ptr [esi]).next
 	mov edx, (Line ptr [edi]).next
 	mov (Line ptr [esi]).next, edx
+
+	.if edx == 0
+		mov tail, esi
+	.endif
+
+	invoke HeapFree, heap, 0, (Line ptr [edi]).text
+	invoke HeapFree, heap, 0, edi
 
 	ret
 deleteLine endp
@@ -426,20 +466,13 @@ editLine proc, lineNum: dword, newText: ptr byte
 		dec ecx
 	.endw
 
-	mov ecx, 0
-	.while byte ptr [edi + ecx] != 0
-		mov byte ptr [edi + ecx], 0
-		inc ecx
-	.endw
+	invoke HeapFree, heap, 0, (Line ptr [edi]).text
 
-	mov esi, newText
-	mov ecx, 0
-	.while byte ptr [esi + ecx] != 0
-		mov al, byte ptr [esi + ecx]
-		mov byte ptr [edi + ecx], al
-		inc ecx
-	.endw
+	push newText
+	call String_copy
+	add esp, 4
 
+	mov (Line ptr [edi]).text, eax
 	ret
 editLine endp
 
