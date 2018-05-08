@@ -276,6 +276,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	;;;;;;;;;;;;;;;;;;; DELETE LINE ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	strSelectLine		byte	13,10,"Enter a line number: ",0
 	strLineInput		byte	4 dup (?),0
+	strLineDNE          byte    13,10,"Line number error!",0
 
 	;;;;;;;;;;;;;;;;;;;; SEARCH FOR TEXT ;;;;;;;;;;;;;;;;;;;;;;
 	strSearchTop		byte	201, 5 dup (205), MAX_LINE_LENGTH dup (205), 187, 13, 10, 0
@@ -301,6 +302,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	tail		dword	0
 	dMemUse		dword	0
 	strMemUse	byte	8 dup (?), 0
+	dLinesUsed  dword   ?
 	
     ;;;;;;;;;;;;;;;;;; FILE HANDLING ;;;;;;;;;;;;;;;;;;;;;;;
 	strFileName        byte "input.txt",0
@@ -381,11 +383,18 @@ addLine proc, text: ptr byte
 		mov byte ptr [edi + ecx], al	; move it into the string
 		inc ecx							; goto next char
 	.endw
-
+    inc dLinesUsed
 	ret
 addLine endp
 
-deleteLine proc, lineNum: dword
+deleteLine proc uses ebx ecx edx esi edi, lineNum: dword
+	mov ebx, lineNum
+	test ebx, ebx
+    .if SIGN? || ebx > dLinesUsed
+	    invoke putstring, addr strLineDNE
+		ret
+    .endif
+
 	.if head == 0
 		ret
 	.endif
