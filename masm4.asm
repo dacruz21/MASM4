@@ -188,8 +188,8 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 		call String_length
 		add esp, 4
 		
-		mov cx, MAX_LINE_LENGTH
-		sub cx, ax
+		mov ecx, MAX_LINE_LENGTH
+		sub ecx, eax
 		.repeat
 			invoke putstring, addr strSpace
 		.untilcxz
@@ -487,7 +487,11 @@ searchString proc, substring: ptr byte
 	mov edx, 1
 
 	.while esi != 0
+		mov edi, (Line ptr [esi]).text
+		push edi
+		push edx
 		push esi
+		push edi
 		call String_copy		; make a copy of the string from the linked list
 		add esp, 4
 
@@ -500,8 +504,11 @@ searchString proc, substring: ptr byte
 		call String_indexOf_3	; search for lower(substring) in lower(esi)
 		add esp, 8
 
+		pop esi
+		pop edx
+		pop edi
 		.if eax != -1			; if EAX != -1, esi contains substring
-			mPrintSearchLine esi, edx	; print the line number and the string
+			mPrintSearchLine edi, edx	; print the line number and the string
 		.endif
 
 		mov esi, (Line ptr [esi]).next	; get the next node with ESI->next
