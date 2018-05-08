@@ -435,7 +435,7 @@ deleteLine proc, lineNum: dword
 		push (Line ptr [edi]).text
 		call String_length
 		add esp, 4
-
+		inc eax							; account for \0
 		sub dMemUse, eax
 
 		invoke HeapFree, heap, 0, (Line ptr [edi]).text	; deallocate the first node's text
