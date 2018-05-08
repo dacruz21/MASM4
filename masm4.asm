@@ -117,6 +117,14 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 			jmp INPUT_END
 		.endif
 
+		push offset strOption6
+		call String_equalsIgnoreCase
+		add esp, 4
+		.if al == 1
+			call saveFile
+			jmp INPUT_END
+		.endif
+
 		push offset strOption7
 		call String_equalsIgnoreCase
 		add esp, 4
@@ -305,6 +313,7 @@ extern String_indexOf_1: Near32, String_indexOf_2:Near32, String_indexOf_3:Near3
 	
     ;;;;;;;;;;;;;;;;;; FILE HANDLING ;;;;;;;;;;;;;;;;;;;;;;;
 	strFileName        byte "input.txt",0
+	strOutputFileName  byte	"output.txt",0
 	strFileOpenError   byte "Cannot open file.",13,10
 	strFileLine        byte	MAX_LINE_LENGTH dup (?), 0
 	dFileSize          dword ?
@@ -700,6 +709,37 @@ file_ok:
 quit:
     ret
 getFromFile ENDP
+
+saveFile proc
+	invoke CreateFile, addr strOutputFileName, GENERIC_WRITE, 0, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0
+
+	mov hFileHandle, eax
+	cmp eax, INVALID_HANDLE_VALUE
+	jne save_ready
+	invoke putstring, addr strFileOpenError
+	jmp save_quit
+
+save_ready:
+	mov esi, head
+
+	.while esi != 0
+		xor ecx, ecx
+		push (Line ptr [esi]).text
+		call String_length
+		add esp, 4
+		mov ecx, eax
+
+		invoke WriteFile, hFileHandle, (Line ptr [esi]).text, ecx, 0,0
+		invoke WriteFile, hFileHandle, addr strCrlf, 2, 0, 0
+
+		mov esi, (Line ptr [esi]).next
+	.endw
+
+
+	invoke CloseHandle, hFileHandle
+save_quit:
+	ret
+saveFile endp
 
 _main:
 	call GetProcessHeap
