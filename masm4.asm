@@ -546,7 +546,7 @@ deletePrompt proc
 	dec eax
 
     test eax, eax                          ; set sign flag if eax is negative
-    .if SIGN? || eax > dLinesUsed          ; if input is negative or greater than # of lines
+    .if SIGN? || eax > dLinesUsed || head == 0 ; if input is negative or greater than # of lines
 	    invoke putstring, addr strLineDNE  ; print error to user
 		ret                                ; return early
     .endif
@@ -564,7 +564,7 @@ editPrompt proc
 	dec eax
 
     test eax, eax                          ; set sign flag if eax is negative
-    .if SIGN? || eax > dLinesUsed          ; if input is negative or greater than # of lines
+    .if SIGN? || eax > dLinesUsed || head == 0 ; if input is negative or greater than # of lines
 	    invoke putstring, addr strLineDNE  ; print error to user
 		ret                                ; return early
     .endif
