@@ -388,13 +388,6 @@ addLine proc, text: ptr byte
 addLine endp
 
 deleteLine proc uses ebx ecx edx esi edi, lineNum: dword
-	mov ebx, lineNum
-	test ebx, ebx
-    .if SIGN? || ebx > dLinesUsed
-	    invoke putstring, addr strLineDNE
-		ret
-    .endif
-
 	.if head == 0
 		ret
 	.endif
@@ -502,6 +495,13 @@ deletePrompt proc
 	invoke getstring, addr strLineInput, 4
 	invoke ascint32, addr strLineInput
 	dec eax
+
+    test eax, eax                          ; set sign flag if eax is negative
+    .if SIGN? || eax > dLinesUsed          ; if input is negative or greater than # of lines
+	    invoke putstring, addr strLineDNE  ; print error to user
+		ret                                ; return early
+    .endif
+
 	push eax
 	call deleteLine
 	add esp, 4
@@ -513,6 +513,12 @@ editPrompt proc
 	invoke getstring, addr strLineInput, 4
 	invoke ascint32, addr strLineInput
 	dec eax
+
+    test eax, eax                          ; set sign flag if eax is negative
+    .if SIGN? || eax > dLinesUsed          ; if input is negative or greater than # of lines
+	    invoke putstring, addr strLineDNE  ; print error to user
+		ret                                ; return early
+    .endif
 
 	invoke putstring, addr strEnterText
 	invoke getstring, addr strKeyboardLine, MAX_LINE_LENGTH
